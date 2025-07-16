@@ -64,8 +64,10 @@ def read_testdata(conn_str, label):
             print(f"Total rows: {len(rows)}")
     except pyodbc.Error as e:
         print(f"Database error reading {label}: {e}")
-    except Exception as e:
-        print(f"Unexpected error reading {label}: {e}")
+    except ValueError as e:
+        print(f"Value error reading {label}: {e}")
+    except TypeError as e:
+        print(f"Type error reading {label}: {e}")
 
 
 if __name__ == "__main__":
