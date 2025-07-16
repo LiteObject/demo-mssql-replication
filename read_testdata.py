@@ -1,47 +1,55 @@
-import os
-from dotenv import load_dotenv
+"""
+Script to read test data from primary and replica SQL Server databases.
+
+This module connects to both primary and replica databases and reads data from
+the TestData table to verify database connectivity and data consistency.
+"""
+
 import pyodbc
+from db_utils import load_connection_config, get_connection_string, check_connection_info
 
-# Load environment variables from .env file
-load_dotenv()
-
-# Get connection info for primary and replica
-PRIMARY_CONN = {
-    'server': os.getenv('PRIMARY_SERVER'),
-    'database': os.getenv('PRIMARY_DATABASE'),
-    'username': os.getenv('PRIMARY_USERNAME'),
-    'password': os.getenv('PRIMARY_PASSWORD'),
-    'driver': os.getenv('PRIMARY_DRIVER'),
-}
-REPLICA_CONN = {
-    'server': os.getenv('REPLICA_SERVER'),
-    'database': os.getenv('REPLICA_DATABASE'),
-    'username': os.getenv('REPLICA_USERNAME'),
-    'password': os.getenv('REPLICA_PASSWORD'),
-    'driver': os.getenv('REPLICA_DRIVER'),
-}
+# Load connection configurations
+PRIMARY_CONN, REPLICA_CONN = load_connection_config()
 
 
 def get_conn_str(conn_info):
-    return (
-        f"DRIVER={conn_info['driver']};"
-        f"SERVER={conn_info['server']};"
-        f"DATABASE={conn_info['database']};"
-        f"UID={conn_info['username']};"
-        f"PWD={conn_info['password']}"
-    )
+    """
+    Generate ODBC connection string from connection info dictionary.
+
+    Args:
+        conn_info (dict): Dictionary containing database connection parameters
+
+    Returns:
+        str: ODBC connection string
+    """
+    return get_connection_string(conn_info)
 
 
 def check_conn_info(conn_info, label):
-    missing = [k for k, v in conn_info.items() if not v]
-    if missing:
-        print(
-            f"Missing environment variables for {label}: {', '.join(missing)}")
-        return False
-    return True
+    """
+    Check if all required connection parameters are present.
+
+    Args:
+        conn_info (dict): Dictionary containing database connection parameters
+        label (str): Human-readable label for the database connection
+
+    Returns:
+        bool: True if all parameters are present, False otherwise
+    """
+    return check_connection_info(conn_info, label)
 
 
 def read_testdata(conn_str, label):
+    """
+    Read test data from the TestData table and display results.
+
+    Args:
+        conn_str (str): ODBC connection string for the database
+        label (str): Human-readable label for the database (for display purposes)
+
+    Returns:
+        None: Prints results to console
+    """
     print(f"\nReading from {label}...")
     try:
         with pyodbc.connect(conn_str) as conn:
@@ -54,8 +62,10 @@ def read_testdata(conn_str, label):
                 print(
                     f"Id: {row.Id}, Value: {row.Value}, CreatedAt: {row.CreatedAt}")
             print(f"Total rows: {len(rows)}")
+    except pyodbc.Error as e:
+        print(f"Database error reading {label}: {e}")
     except Exception as e:
-        print(f"Error reading {label}: {e}")
+        print(f"Unexpected error reading {label}: {e}")
 
 
 if __name__ == "__main__":
