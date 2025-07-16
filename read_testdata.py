@@ -21,6 +21,7 @@ REPLICA_CONN = {
     'driver': os.getenv('REPLICA_DRIVER'),
 }
 
+
 def get_conn_str(conn_info):
     return (
         f"DRIVER={conn_info['driver']};"
@@ -30,6 +31,16 @@ def get_conn_str(conn_info):
         f"PWD={conn_info['password']}"
     )
 
+
+def check_conn_info(conn_info, label):
+    missing = [k for k, v in conn_info.items() if not v]
+    if missing:
+        print(
+            f"Missing environment variables for {label}: {', '.join(missing)}")
+        return False
+    return True
+
+
 def read_testdata(conn_str, label):
     print(f"\nReading from {label}...")
     try:
@@ -37,11 +48,18 @@ def read_testdata(conn_str, label):
             cursor = conn.cursor()
             cursor.execute('SELECT Id, Value, CreatedAt FROM dbo.TestData')
             rows = cursor.fetchall()
+            if not rows:
+                print("No rows found.")
             for row in rows:
-                print(f"Id: {row.Id}, Value: {row.Value}, CreatedAt: {row.CreatedAt}")
+                print(
+                    f"Id: {row.Id}, Value: {row.Value}, CreatedAt: {row.CreatedAt}")
+            print(f"Total rows: {len(rows)}")
     except Exception as e:
         print(f"Error reading {label}: {e}")
 
+
 if __name__ == "__main__":
-    read_testdata(get_conn_str(PRIMARY_CONN), "Primary DB")
-    read_testdata(get_conn_str(REPLICA_CONN), "Replica DB")
+    if check_conn_info(PRIMARY_CONN, "Primary DB"):
+        read_testdata(get_conn_str(PRIMARY_CONN), "Primary DB")
+    if check_conn_info(REPLICA_CONN, "Replica DB"):
+        read_testdata(get_conn_str(REPLICA_CONN), "Replica DB")
