@@ -1,0 +1,35 @@
+version: '3.8'
+services:
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: mssql_test
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong!Passw0rd
+    ports:
+      - "1433:1433"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P YourStrong!Passw0rd -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - mssql_data:/var/opt/mssql
+      - ./init_db.sql:/init_db.sql:ro
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh:ro
+    command: ["/bin/bash", "/docker-entrypoint-initdb.d/init-db.sh"]
+  mssql_replica:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: mssql_replica
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong!Passw0rd
+    ports:
+      - "1434:1433"
+    restart: unless-stopped
+    volumes:
+      - mssql_replica_data:/var/opt/mssql
+volumes:
+  mssql_data:
+  mssql_replica_data:
