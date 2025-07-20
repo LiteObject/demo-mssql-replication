@@ -100,7 +100,7 @@ def test_connection(conn_str, label):
         conn = pyodbc.connect(conn_str)
         print(f"✓ Successfully connected to {label}")
         return conn
-    except Exception as e:
+    except pyodbc.Error as e:
         print(f"✗ Failed to connect to {label}: {e}")
         return None
 
@@ -133,6 +133,41 @@ def execute_query(conn_str, query, label, fetch_results=True):
                 conn.commit()
                 return cursor.rowcount
 
+    except pyodbc.Error as e:
+        print(f"Database error executing query on {label}: {e}")
+        return None
+
+
+def insert_record_primary(conn_info, table_name, data):
+    """
+    Insert a record into a table in the primary database.
+
+    Args:
+        conn_info (dict): Primary database connection information
+        table_name (str): Name of the table to insert into
+        data (dict): Dictionary of column names and values to insert
+
+    Returns:
+        int or None: Number of rows inserted, or None on error
+    """
+    try:
+        conn_str = get_connection_string(conn_info)
+        
+        # Build INSERT statement
+        columns = ', '.join(data.keys())
+        placeholders = ', '.join(['?' for _ in data])
+        query = f"INSERT INTO {table_name} ({columns}) VALUES ({placeholders})"
+        
+        with pyodbc.connect(conn_str) as conn:
+            cursor = conn.cursor()
+            cursor.execute(query, list(data.values()))
+            conn.commit()
+            print(f"Inserted record into {table_name} on primary DB.")
+            return cursor.rowcount
+            
+    except pyodbc.Error as e:
+        print(f"Database error inserting record: {e}")
+        return None
     except Exception as e:
-        print(f"Error executing query on {label}: {e}")
+        print(f"Error inserting record: {e}")
         return None

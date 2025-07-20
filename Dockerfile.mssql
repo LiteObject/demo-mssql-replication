@@ -1,15 +1,32 @@
 FROM mcr.microsoft.com/mssql/server:2022-latest
 
+# Switch to root to install packages and set up files
 USER root
-RUN apt-get update \
-    && apt-get install -y curl gnupg \
-    && curl https://packages.microsoft.com/keys/microsoft.asc | apt-key add - \
-    && curl https://packages.microsoft.com/config/debian/10/prod.list > /etc/apt/sources.list.d/mssql-release.list \
-    && apt-get update \
-    && ACCEPT_EULA=Y apt-get install -y msodbcsql17 mssql-tools \
-    && echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc
 
-ENV PATH="$PATH:/opt/mssql-tools/bin"
+# Copy initialization scripts
+COPY init_db.sql /init_db.sql
+COPY setup_replication.sql /setup_replication.sql
+COPY init-db.sh /init-db.sh
+
+# Make shell script executable
+RUN chmod +x /init-db.sh
+
+# Create startup script that runs SQL Server and initialization
+RUN echo '#!/bin/bash\n\
+set -e\n\
+echo "Starting SQL Server..."\n\
+/opt/mssql/bin/sqlservr &\n\
+SQL_PID=$!\n\
+echo "SQL Server started with PID $SQL_PID"\n\
+echo "Waiting for SQL Server to be ready..."\n\
+sleep 45\n\
+echo "Running initialization script..."\n\
+/init-db.sh\n\
+echo "Waiting for SQL Server process..."\n\
+wait $SQL_PID' > /startup.sh && chmod +x /startup.sh
+
+# Switch back to mssql user
 USER mssql
 
-# Entrypoint and CMD will be set by docker-compose
+# Use custom startup script
+CMD ["/startup.sh"]

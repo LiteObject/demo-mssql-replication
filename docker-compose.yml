@@ -1,36 +1,53 @@
-version: '3.8'
 services:
   mssql:
     build:
       context: .
       dockerfile: Dockerfile.mssql
     container_name: mssql_test
+    hostname: mssql_test
     environment:
       - ACCEPT_EULA=Y
       - SA_PASSWORD=YourStrong!Passw0rd
+      - MSSQL_AGENT_ENABLED=true
+      - IS_PUBLISHER=true
     ports:
       - "1433:1433"
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P YourStrong!Passw0rd -Q 'SELECT 1' || exit 1"]
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U SA -P YourStrong!Passw0rd -Q 'SELECT 1' -C || exit 1"]
       interval: 10s
       timeout: 5s
       retries: 5
     volumes:
       - mssql_data:/var/opt/mssql
-      - ./init_db.sql:/init_db.sql:ro
-      - ./init-db.sh:/init-db.sh:ro
+    networks:
+      - sql_network
   mssql_replica:
-    image: mcr.microsoft.com/mssql/server:2022-latest
+    build:
+      context: .
+      dockerfile: Dockerfile.mssql
     container_name: mssql_replica
+    hostname: mssql_replica
     environment:
       - ACCEPT_EULA=Y
       - SA_PASSWORD=YourStrong!Passw0rd
+      - MSSQL_AGENT_ENABLED=true
+      - IS_SUBSCRIBER=true
     ports:
       - "1434:1433"
     restart: unless-stopped
     volumes:
       - mssql_replica_data:/var/opt/mssql
+    networks:
+      - sql_network
+    depends_on:
+      mssql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U SA -P YourStrong!Passw0rd -Q 'SELECT 1' -C || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
   
   adminer:
     image: adminer
@@ -43,7 +60,15 @@ services:
     depends_on:
       - mssql
       - mssql_replica
+    networks:
+      - sql_network
 
 volumes:
   mssql_data:
   mssql_replica_data:
+
+networks:
+  sql_network:
+    driver: bridge
+
+
