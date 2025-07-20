@@ -48,7 +48,7 @@ A demonstration project for SQL Server database setup with Docker, featuring pri
 5. **Test After Container Restart** (Optional):
    ```bash
    # Test that replication works after a complete restart
-   python test_after_restart.py
+   python verify_replication.py
    ```
 
 6. **Manual Setup** (Only if automatic setup fails):
@@ -176,17 +176,6 @@ Shell script for container initialization that:
 - Executes the `init_db.sql` script
 - Handles SSL certificate trust for SQL Server 2022
 
-#### `create_test_table.sql`
-Standalone script to create the `TestData` table:
-- Defines the table structure with Identity column
-- Sets up default values and constraints
-
-#### `enable_cdc_primary.sql`
-Script to enable Change Data Capture (CDC) on the primary database:
-- Enables CDC at database level
-- Configures CDC for the `TestData` table
-- Alternative to transactional replication for change tracking
-
 ### Python Utilities
 
 #### `db_utils.py`
@@ -196,12 +185,6 @@ Core database utility module providing:
 - **Connection Testing**: Validates database connectivity
 - **Environment Variable Support**: Loads configuration from environment variables
 
-#### `read_testdata.py`
-Database connectivity test script that:
-- Tests connections to both primary and replica databases
-- Reads and displays data from the `TestData` table
-- Verifies that the database setup is working correctly
-
 #### `verify_replication.py`
 Replication verification script that:
 - Inserts a test record into the primary database
@@ -209,12 +192,16 @@ Replication verification script that:
 - Checks if the record appears in the replica database
 - Reports whether replication is working correctly
 
-#### `test_after_restart.py`
-Comprehensive test script for container restart scenarios:
-- Waits for containers to be ready after restart
-- Tests database connectivity to both primary and replica
-- Performs end-to-end replication verification
-- Provides detailed success/failure reporting
+### Debug Utilities
+
+#### `debug_job_startup.py`
+Python script to troubleshoot snapshot agent startup issues.
+
+#### `debug_startup_timing.sql`
+SQL script to debug automatic startup timing in-container.
+
+#### `test_automatic_startup.sql`
+SQL script to test automatic snapshot agent job startup logic.
 
 ### Support Files
 
@@ -614,7 +601,6 @@ demo-mssql-replication/
 ├── Dockerfile.mssql           # Custom SQL Server image
 ├── init-db.sh                 # Database initialization script
 ├── init_db.sql               # Database creation SQL
-├── create_test_table.sql     # Test table creation
 ├── .env                      # Environment variables
 ├── db_utils.py              # Database utility functions
 ├── read_testdata.py         # Test script for connectivity
