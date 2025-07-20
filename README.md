@@ -53,7 +53,7 @@ A demonstration project for SQL Server database setup with Docker, featuring pri
 
 6. **Manual Setup** (Only if automatic setup fails):
    
-   **Option A - Using setup script:**
+   **Option A – Run the setup script:**
    ```bash
    # Linux/macOS
    chmod +x setup_replication.sh
@@ -63,7 +63,16 @@ A demonstration project for SQL Server database setup with Docker, featuring pri
    .\setup_replication.ps1
    ```
    
-   **Option B - Manual execution:**
+   **Option B – Manually execute the SQL setup script in the container:**
+   ```bash
+   # Copy the SQL setup script into the primary container
+   docker cp setup_replication.sql mssql_test:/tmp/
+   # Run the script inside the container (adjust password if needed)
+   docker exec -it mssql_test /opt/mssql-tools18/bin/sqlcmd -S localhost -U SA -P 'YourStrong!Passw0rd' -C -i "/tmp/setup_replication.sql" -v IS_PUBLISHER="true"
+   ```
+   
+   - The above command will manually configure replication if the automatic setup did not complete.
+   - Check the container logs for errors and refer to the TROUBLESHOOTING.md for further help.
    ```bash
    # Copy and run the setup script manually
    docker cp setup_replication.sql mssql_test:/tmp/
