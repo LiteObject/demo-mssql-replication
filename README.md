@@ -1,4 +1,4 @@
-# demo-mssql-replication
+# Demo MSSQL Replication
 
 A demonstration project for SQL Server database setup with Docker, featuring primary and replica database containers with transactional replication for testing database connectivity and replication operations.
 
