@@ -73,11 +73,6 @@ A demonstration project for SQL Server database setup with Docker, featuring pri
    
    - The above command will manually configure replication if the automatic setup did not complete.
    - Check the container logs for errors and refer to the TROUBLESHOOTING.md for further help.
-   ```bash
-   # Copy and run the setup script manually
-   docker cp setup_replication.sql mssql_test:/tmp/
-   docker exec -it mssql_test /opt/mssql-tools18/bin/sqlcmd -S localhost -U SA -P 'YourStrong!Passw0rd' -C -i "/tmp/setup_replication.sql" -v IS_PUBLISHER="true"
-   ```
 
 7. **Access Adminer**: http://localhost:8080
    - Server: `localhost:1433` (primary) or `localhost:1434` (replica)
@@ -201,30 +196,24 @@ Replication verification script that:
 - Checks if the record appears in the replica database
 - Reports whether replication is working correctly
 
-### Debug Utilities
-
-#### `debug_job_startup.py`
-Python script to troubleshoot snapshot agent startup issues.
-
-#### `debug_startup_timing.sql`
-SQL script to debug automatic startup timing in-container.
-
-#### `test_automatic_startup.sql`
-SQL script to test automatic snapshot agent job startup logic.
-
 ### Support Files
 
-#### `create_replication_directory.sh`
-Shell script to create the required replication directory:
-- Creates `/var/opt/mssql/ReplData` directory
-- Sets proper ownership and permissions for SQL Server
-- Required for replication agents to function
+#### `setup_subscriber.sql`
+SQL script for setting up the subscriber database:
+- Creates the subscriber database and table structure
+- Prepares the replica for receiving replication data
+- Executed automatically during container startup
 
-#### `replication_fixes.ps1`
-PowerShell documentation script containing:
-- Manual fixes that were applied to make replication work
-- Troubleshooting commands for common replication issues
-- SQL commands to update replication configuration
+#### `requirements.txt`
+Python dependencies file listing required packages:
+- `pyodbc` for SQL Server connectivity
+- `python-dotenv` for environment variable management
+
+#### `.env.example`
+Example environment configuration file showing:
+- Database connection parameters for primary and replica
+- Default values and connection string formats
+- Template for creating your own `.env` file
 
 #### `README.md`
 This documentation file explaining:
@@ -429,9 +418,6 @@ WHERE name LIKE '%MyDatabasePublication%';
 
 ### Running Tests
 ```bash
-# Test basic connectivity
-python read_testdata.py
-
 # Test replication functionality
 python verify_replication.py
 
@@ -512,14 +498,14 @@ REPLICA_DRIVER={ODBC Driver 17 for SQL Server}
 
 ## Important Notes
 
-### Database Independence
-- **Separate Instances**: Primary and replica are independent SQL Server instances
-- **No Automatic Replication**: Changes to primary do not automatically appear in replica
-- **Manual Operations**: Use provided utilities to insert/read data from each database independently
+### Replication Setup
+- **Automated Configuration**: The containers automatically set up transactional replication during startup
+- **Real-time Synchronization**: Changes to the primary database are automatically replicated to the replica
+- **Container Dependencies**: The replica container waits for the primary to be healthy before starting
 
 ### Container Setup
-- **Primary Container**: Exposed on port 1433
-- **Replica Container**: Exposed on port 1434
+- **Primary Container**: Exposed on port 1433 (Publisher/Distributor)
+- **Replica Container**: Exposed on port 1434 (Subscriber)
 - **Adminer**: Available on port 8080 for database management
 - **Initialization**: Both containers automatically create the MyDatabase and TestData table on startup
 
@@ -544,19 +530,13 @@ REPLICA_DRIVER={ODBC Driver 17 for SQL Server}
 
 ## Usage Examples
 
-### Reading Data
-```python
-# Run the test script
-python read_testdata.py
+### Testing Replication
+```bash
+# Run the replication verification script
+python verify_replication.py
 ```
 
-### Inserting Data
-Uncomment the insertion code in `read_testdata.py` and run:
-```python
-python read_testdata.py
-```
-
-### Custom Operations
+### Custom Database Operations
 ```python
 from db_utils import load_connection_config, execute_query, get_connection_string
 
@@ -597,21 +577,28 @@ Add new database utility functions to `db_utils.py` following the established pa
 - Print informative messages for debugging
 
 ### Testing
-Use `read_testdata.py` to verify:
-- Database connectivity to both primary and replica
-- Data insertion functionality
-- Query execution and result retrieval
+Use `verify_replication.py` to test:
+- Replication functionality between primary and replica
+- Data synchronization verification
+- End-to-end replication workflow
 
 ## Project Structure
 
 ```
 demo-mssql-replication/
-├── docker-compose.yml          # Container orchestration
-├── Dockerfile.mssql           # Custom SQL Server image
-├── init-db.sh                 # Database initialization script
-├── init_db.sql               # Database creation SQL
-├── .env                      # Environment variables
-├── db_utils.py              # Database utility functions
-├── read_testdata.py         # Test script for connectivity
-└── README.md               # This documentation
+├── .env.example               # Example environment configuration
+├── .gitignore                 # Git ignore patterns
+├── db_utils.py               # Database utility functions
+├── docker-compose.yml        # Container orchestration
+├── Dockerfile.mssql         # Custom SQL Server image
+├── init-db.sh              # Database initialization script
+├── init_db.sql             # Database creation SQL
+├── README.md               # This documentation
+├── requirements.txt        # Python dependencies
+├── setup_replication.ps1   # PowerShell setup script
+├── setup_replication.sh    # Bash setup script
+├── setup_replication.sql   # Main replication configuration
+├── setup_subscriber.sql    # Subscriber setup script
+├── TROUBLESHOOTING.md      # Troubleshooting guide
+└── verify_replication.py   # Replication verification script
 ```
